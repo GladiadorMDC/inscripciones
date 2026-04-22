@@ -8,151 +8,141 @@
         body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; text-align: center; }
         .tarjeta-evento { border: 1px solid #ccc; padding: 20px; border-radius: 10px; margin-top: 20px; display: none; }
         .qr-imagen { max-width: 250px; margin: 15px 0; border-radius: 8px; }
-        button { padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px; }
+        button { padding: 12px 20px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; width: 90%; font-size: 16px;}
         button:hover { background-color: #218838; }
-        input[type="text"] { padding: 10px; width: 80%; border: 1px solid #ccc; border-radius: 5px; }
+        .btn-secundario { background-color: #007bff; }
+        .btn-secundario:hover { background-color: #0056b3; }
+        input[type="text"] { padding: 10px; width: 80%; border: 1px solid #ccc; border-radius: 5px; margin-bottom: 10px; }
+        .seccion-oculta { display: none; margin-top: 20px; text-align: left; background: #f9f9f9; padding: 15px; border-radius: 8px;}
+        ul { text-align: left; }
+        li { padding: 5px 0; border-bottom: 1px solid #eee; }
     </style>
 </head>
 <body>
 
     <h1>Portal de Inscripciones</h1>
-    
-    <div id="cargando">Cargando base de datos y eventos...</div>
+    <div id="cargando">Cargando base de datos...</div>
     
     <div id="evento-activo" class="tarjeta-evento">
         <h2 id="titulo-evento"></h2>
-        <p><strong>Monto de inscripción:</strong> <span id="monto-evento"></span></p>
+        <p><strong>Monto:</strong> <span id="monto-evento"></span></p>
         
-        <div id="seccion-busqueda">
-            <p>Busca tu nombre o C.I. en la lista:</p>
-            <input list="lista-gladiadores" type="text" id="dato-busqueda" placeholder="Escribe para buscar...">
-            <datalist id="lista-gladiadores"></datalist>
-            <br>
-            <button onclick="verificarUsuario()">Seleccionar y Continuar</button>
-            <p id="mensaje-error" style="color: red; display: none;">No estás en la lista. <a href="https://lienzosbolivia.github.io/Gladiadores-/">Regístrate aquí primero</a>.</p>
+        <div id="menu-principal">
+            <button onclick="mostrarSeccion('seccion-gladiador')">🛡️ Soy Gladiador</button>
+            <button onclick="mostrarSeccion('seccion-invitado')">➕ Llevar a un Invitado</button>
+            <button class="btn-secundario" onclick="mostrarSeccion('seccion-lista')">📋 Ver lista de inscritos</button>
         </div>
 
-        <div id="seccion-pago" style="display: none;">
+        <div id="seccion-gladiador" class="seccion-oculta">
+            <p>Busca tu nombre o C.I.:</p>
+            <input list="lista-gladiadores" type="text" id="dato-busqueda" placeholder="Escribe para buscar...">
+            <datalist id="lista-gladiadores"></datalist>
+            <button onclick="verificarGladiador()">Continuar al Pago</button>
+            <p id="error-gladiador" style="color: red; display: none;">No estás en la lista.</p>
+        </div>
+
+        <div id="seccion-invitado" class="seccion-oculta">
+            <p>Ingresa el nombre completo de tu invitado:</p>
+            <input type="text" id="nombre-invitado" placeholder="Ej: Juan Pérez">
+            <button onclick="verificarInvitado()">Continuar al Pago</button>
+        </div>
+
+        <div id="seccion-lista" class="seccion-oculta">
+            <h3>Inscritos hasta el momento:</h3>
+            <ul id="ul-inscritos"></ul>
+            <button class="btn-secundario" onclick="mostrarSeccion('menu-principal')">Volver</button>
+        </div>
+
+        <div id="seccion-pago" class="seccion-oculta" style="text-align: center;">
             <h3 style="color: #28a745;">¡Hola, <span id="nombre-confirmado"></span>!</h3>
             <p>Realiza tu pago escaneando este QR:</p>
             <img id="qr-evento" class="qr-imagen" src="" alt="QR de Pago">
             <br>
             <p>Sube tu comprobante:</p>
             <input type="file" id="comprobante" accept="image/*">
-            <br>
-            <button onclick="enviarInscripcion()">Confirmar Inscripción</button>
+            <br><br>
+            <button id="btn-enviar" onclick="enviarInscripcion()">Confirmar Inscripción</button>
         </div>
     </div>
 
     <script>
-        // 1. PEGA AQUÍ TU NUEVA URL DE APPS SCRIPT
-        const URL_SCRIPT = 'https://script.google.com/macros/s/AKfycbzw2C3-3glccpSkeXVbTIPtIS0gX7zc-5EecJ39wgEM24-DvoSxzNrwvxW4w20Fib0e/exec';
-        
-        let datosBase = []; // Guardaremos la lista aquí
+        const URL_SCRIPT = 'https://script.google.com/macros/s/AKfycbyj1-_vzgFFH_utSyEkzi9qvk9y6xHRaeyyFJXiKRrfqo00mPsEdvt-Qf-qx30oIVLk/exec';
+        let datosBase = []; 
+        let nombreParaInscribir = "";
 
         document.addEventListener("DOMContentLoaded", () => {
-            fetch(URL_SCRIPT)
-                .then(respuesta => respuesta.json())
-                .then(datos => {
-                    document.getElementById('cargando').style.display = 'none';
+            fetch(URL_SCRIPT).then(r => r.json()).then(datos => {
+                document.getElementById('cargando').style.display = 'none';
+                if (datos.evento) {
+                    document.getElementById('evento-activo').style.display = 'block';
+                    document.getElementById('titulo-evento').textContent = datos.evento.nombre;
+                    document.getElementById('monto-evento').textContent = datos.evento.monto;
+                    document.getElementById('qr-evento').src = datos.evento.qr;
                     
-                    if (datos.evento && datos.evento.nombre) {
-                        document.getElementById('evento-activo').style.display = 'block';
-                        document.getElementById('titulo-evento').textContent = datos.evento.nombre;
-                        document.getElementById('monto-evento').textContent = datos.evento.monto;
-                        document.getElementById('qr-evento').src = datos.evento.qr;
-                        
-                        // Cargar la lista en el datalist
-                        datosBase = datos.gladiadores;
-                        const datalist = document.getElementById('lista-gladiadores');
-                        datosBase.forEach(persona => {
-                            let option = document.createElement('option');
-                            // Mostramos "Nombre - C.I." en la lista
-                            option.value = `${persona.nombre} - ${persona.ci}`;
-                            datalist.appendChild(option);
-                        });
-                    } else {
-                        document.getElementById('cargando').style.display = 'block';
-                        document.getElementById('cargando').textContent = 'No hay eventos activos.';
-                    }
-                })
-                .catch(error => {
-                    console.error("Error:", error);
-                    document.getElementById('cargando').textContent = 'Error de conexión.';
-                });
+                    // Llenar datalist
+                    datosBase = datos.gladiadores;
+                    const datalist = document.getElementById('lista-gladiadores');
+                    datosBase.forEach(p => datalist.insertAdjacentHTML('beforeend', `<option value="${p.nombre} - ${p.ci}">`));
+                    
+                    // Llenar lista de inscritos
+                    const ulInscritos = document.getElementById('ul-inscritos');
+                    if(datos.inscritos.length === 0) ulInscritos.innerHTML = "<li>Nadie se ha inscrito aún.</li>";
+                    datos.inscritos.forEach(i => ulInscritos.insertAdjacentHTML('beforeend', `<li>${i.nombre} <span style="font-size:12px; color:gray;">(${i.estado})</span></li>`));
+                }
+            });
         });
 
-        function verificarUsuario() {
+        function mostrarSeccion(id) {
+            document.querySelectorAll('.seccion-oculta').forEach(s => s.style.display = 'none');
+            document.getElementById('menu-principal').style.display = id === 'menu-principal' ? 'block' : 'none';
+            if(id !== 'menu-principal') document.getElementById(id).style.display = 'block';
+        }
+
+        function verificarGladiador() {
             const input = document.getElementById('dato-busqueda').value;
-            // Verificar si lo que escribió coincide con alguna opción de la lista
-            const existe = datosBase.some(persona => `${persona.nombre} - ${persona.ci}` === input);
-            
-            if (existe) {
-                document.getElementById('mensaje-error').style.display = 'none';
-                document.getElementById('seccion-busqueda').style.display = 'none';
-                document.getElementById('seccion-pago').style.display = 'block';
-                // Extraemos solo el nombre para saludarlo
-                document.getElementById('nombre-confirmado').textContent = input.split(' - ')[0];
+            if (datosBase.some(p => `${p.nombre} - ${p.ci}` === input)) {
+                nombreParaInscribir = input.split(' - ')[0];
+                prepararPago();
             } else {
-                document.getElementById('mensaje-error').style.display = 'block';
+                document.getElementById('error-gladiador').style.display = 'block';
             }
         }
 
+        function verificarInvitado() {
+            const input = document.getElementById('nombre-invitado').value.trim();
+            if(input !== "") {
+                nombreParaInscribir = input + " (Invitado)";
+                prepararPago();
+            } else { alert("Ingresa un nombre."); }
+        }
+
+        function prepararPago() {
+            mostrarSeccion('seccion-pago');
+            document.getElementById('nombre-confirmado').textContent = nombreParaInscribir;
+        }
+
         function enviarInscripcion() {
-            const inputArchivo = document.getElementById('comprobante');
-            const boton = document.querySelector('button[onclick="enviarInscripcion()"]');
+            const archivo = document.getElementById('comprobante').files[0];
+            if (!archivo) return alert("Sube una foto del comprobante.");
             
-            if (inputArchivo.files.length === 0) {
-                alert("Por favor, sube una foto de tu comprobante.");
-                return;
-            }
+            const btn = document.getElementById('btn-enviar');
+            btn.textContent = "Subiendo..."; btn.disabled = true;
 
-            // Cambiar el botón para mostrar que está cargando
-            boton.textContent = "Subiendo y verificando...";
-            boton.disabled = true;
-
-            const archivo = inputArchivo.files[0];
             const lector = new FileReader();
-
-            // Esto convierte la imagen a Base64
-            lector.onload = function(eventoLectura) {
-                // Limpiamos el inicio del string Base64 para que Google lo entienda
-                const base64Limpio = eventoLectura.target.result.split(',')[1];
-                
-                // Preparamos el paquete de datos
-                const paqueteDatos = {
-                    nombre: document.getElementById('nombre-confirmado').textContent,
+            lector.onload = function(e) {
+                const paquete = {
+                    nombre: nombreParaInscribir,
                     evento: document.getElementById('titulo-evento').textContent,
-                    imagenBase64: base64Limpio
+                    imagenBase64: e.target.result.split(',')[1]
                 };
 
-                // Enviamos los datos al script de Google
-                fetch(URL_SCRIPT, { // Asegúrate de que URL_SCRIPT sea tu URL más nueva
-                    method: 'POST',
-                    body: JSON.stringify(paqueteDatos)
-                })
-                .then(respuesta => respuesta.json())
-                .then(resultado => {
-                    if(resultado.exito) {
-                        document.getElementById('seccion-pago').innerHTML = `
-                            <h3 style="color: #28a745;">¡Inscripción Enviada!</h3>
-                            <p>Tu comprobante está en revisión. ¡Nos vemos en el evento!</p>
-                        `;
-                    } else {
-                        alert("Error al guardar: " + resultado.error);
-                        boton.textContent = "Reintentar";
-                        boton.disabled = false;
-                    }
-                })
-                .catch(error => {
-                    console.error("Error en el envío:", error);
-                    alert("Hubo un error de conexión.");
-                    boton.textContent = "Reintentar";
-                    boton.disabled = false;
+                fetch(URL_SCRIPT, { method: 'POST', body: JSON.stringify(paquete) })
+                .then(r => r.json()).then(res => {
+                    if(res.exito) {
+                        document.getElementById('seccion-pago').innerHTML = `<h3 style="color:#28a745;">¡Inscripción Exitosa!</h3><p>Comprobante en revisión.</p><button onclick="location.reload()">Volver al inicio</button>`;
+                    } else alert("Error: " + res.error);
                 });
             };
-
-            // Ejecutar la lectura del archivo
             lector.readAsDataURL(archivo);
         }
     </script>
