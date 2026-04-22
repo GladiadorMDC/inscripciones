@@ -6,24 +6,31 @@
     <title>Inscripciones Gladiadores</title>
     <style>
         body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; text-align: center; }
-        .tarjeta-evento { border: 1px solid #ccc; padding: 20px; border-radius: 10px; margin-top: 20px; display: none; }
-        .qr-imagen { max-width: 250px; margin: 15px 0; border-radius: 8px; }
-        button { padding: 12px 20px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; width: 90%; font-size: 16px;}
+        .tarjeta-evento { border: 1px solid #ccc; padding: 20px; border-radius: 10px; margin-top: 10px; display: none; }
+        .qr-imagen { max-width: 250px; margin: 15px 0; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .logo-principal { max-width: 150px; margin-bottom: 10px; }
+        .afiche-evento { max-width: 100%; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        button { padding: 12px 20px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; width: 90%; font-size: 16px; font-weight: bold;}
         button:hover { background-color: #218838; }
         .btn-secundario { background-color: #007bff; }
         .btn-secundario:hover { background-color: #0056b3; }
         input[type="text"] { padding: 10px; width: 80%; border: 1px solid #ccc; border-radius: 5px; margin-bottom: 10px; }
         .seccion-oculta { display: none; margin-top: 20px; text-align: left; background: #f9f9f9; padding: 15px; border-radius: 8px;}
-        ul { text-align: left; }
-        li { padding: 5px 0; border-bottom: 1px solid #eee; }
+        ul { text-align: left; padding-left: 20px; }
+        li { padding: 8px 0; border-bottom: 1px solid #eee; }
     </style>
 </head>
 <body>
 
+    <img src="gladiadores.png" alt="Logo Gladiadores" class="logo-principal">
+    
     <h1>Portal de Inscripciones</h1>
     <div id="cargando">Cargando base de datos...</div>
     
     <div id="evento-activo" class="tarjeta-evento">
+        
+        <img src="afiche.jpg" alt="Afiche del Evento" class="afiche-evento">
+
         <h2 id="titulo-evento"></h2>
         <p><strong>Monto:</strong> <span id="monto-evento"></span></p>
         
@@ -50,15 +57,17 @@
         <div id="seccion-lista" class="seccion-oculta">
             <h3>Inscritos hasta el momento:</h3>
             <ul id="ul-inscritos"></ul>
-            <button class="btn-secundario" onclick="mostrarSeccion('menu-principal')">Volver</button>
+            <button class="btn-secundario" onclick="mostrarSeccion('menu-principal')">Volver al menú</button>
         </div>
 
         <div id="seccion-pago" class="seccion-oculta" style="text-align: center;">
             <h3 style="color: #28a745;">¡Hola, <span id="nombre-confirmado"></span>!</h3>
             <p>Realiza tu pago escaneando este QR:</p>
+            
             <img id="qr-evento" class="qr-imagen" src="" alt="QR de Pago">
+            
             <br>
-            <p>Sube tu comprobante:</p>
+            <p>Sube la foto de tu comprobante:</p>
             <input type="file" id="comprobante" accept="image/*">
             <br><br>
             <button id="btn-enviar" onclick="enviarInscripcion()">Confirmar Inscripción</button>
@@ -66,7 +75,9 @@
     </div>
 
     <script>
-        const URL_SCRIPT = 'https://script.google.com/macros/s/AKfycbyj1-_vzgFFH_utSyEkzi9qvk9y6xHRaeyyFJXiKRrfqo00mPsEdvt-Qf-qx30oIVLk/exec';
+        // ¡RECUERDA PEGAR TU URL AQUÍ ABAJO!
+        const URL_SCRIPT = 'https://script.google.com/macros/s/AKfycbx5GG4UnT-DvMUBKk6a7BgJFFu9aGQZG3WCUspvNMjN3TN9nJMDc2xULP_7ZhjesByo/exec';
+        
         let datosBase = []; 
         let nombreParaInscribir = "";
 
@@ -77,21 +88,19 @@
                     document.getElementById('evento-activo').style.display = 'block';
                     document.getElementById('titulo-evento').textContent = datos.evento.nombre;
                     document.getElementById('monto-evento').textContent = datos.evento.monto;
-                    document.getElementById('qr-evento').src = datos.evento.qr;
                     
-                    // Llenar datalist
+                    // ¡La línea del QR dinámico fue eliminada de aquí!
+                    
                     datosBase = datos.gladiadores;
                     const datalist = document.getElementById('lista-gladiadores');
                     datosBase.forEach(p => datalist.insertAdjacentHTML('beforeend', `<option value="${p.nombre} - ${p.ci}">`));
                     
-                    // Llenar lista de inscritos
                     const ulInscritos = document.getElementById('ul-inscritos');
                     if(datos.inscritos.length === 0) ulInscritos.innerHTML = "<li>Nadie se ha inscrito aún.</li>";
                     datos.inscritos.forEach(i => ulInscritos.insertAdjacentHTML('beforeend', `<li>${i.nombre} <span style="font-size:12px; color:gray;">(${i.estado})</span></li>`));
                 }
             });
         });
-
         function mostrarSeccion(id) {
             document.querySelectorAll('.seccion-oculta').forEach(s => s.style.display = 'none');
             document.getElementById('menu-principal').style.display = id === 'menu-principal' ? 'block' : 'none';
@@ -126,7 +135,7 @@
             if (!archivo) return alert("Sube una foto del comprobante.");
             
             const btn = document.getElementById('btn-enviar');
-            btn.textContent = "Subiendo..."; btn.disabled = true;
+            btn.textContent = "Subiendo archivo, no cierres la ventana..."; btn.disabled = true;
 
             const lector = new FileReader();
             lector.onload = function(e) {
@@ -139,8 +148,11 @@
                 fetch(URL_SCRIPT, { method: 'POST', body: JSON.stringify(paquete) })
                 .then(r => r.json()).then(res => {
                     if(res.exito) {
-                        document.getElementById('seccion-pago').innerHTML = `<h3 style="color:#28a745;">¡Inscripción Exitosa!</h3><p>Comprobante en revisión.</p><button onclick="location.reload()">Volver al inicio</button>`;
-                    } else alert("Error: " + res.error);
+                        document.getElementById('seccion-pago').innerHTML = `<h3 style="color:#28a745;">¡Inscripción Exitosa!</h3><p>Tu comprobante está en revisión.</p><button onclick="location.reload()">Volver al inicio</button>`;
+                    } else {
+                        alert("Error: " + res.error);
+                        btn.textContent = "Reintentar"; btn.disabled = false;
+                    }
                 });
             };
             lector.readAsDataURL(archivo);
