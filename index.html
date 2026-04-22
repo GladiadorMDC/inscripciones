@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inscripciones Gladiadores</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; text-align: center; }
+        .tarjeta-evento { border: 1px solid #ccc; padding: 20px; border-radius: 10px; margin-top: 20px; display: none; }
+        .qr-imagen { max-width: 250px; margin: 15px 0; border-radius: 8px; }
+        button { padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background-color: #218838; }
+        input[type="text"] { padding: 10px; width: 80%; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px;}
+    </style>
+</head>
+<body>
+
+    <h1>Portal de Inscripciones</h1>
+    
+    <div id="cargando">Buscando eventos disponibles...</div>
+    
+    <div id="evento-activo" class="tarjeta-evento">
+        <h2 id="titulo-evento"></h2>
+        <p><strong>Monto de inscripción:</strong> <span id="monto-evento"></span></p>
+        
+        <div id="seccion-busqueda">
+            <p>Ingresa tu C.I. o Nombre Completo para verificar tu registro previo:</p>
+            <input type="text" id="dato-busqueda" placeholder="Ej: 13981853 o Christopher...">
+            <br>
+            <button onclick="verificarUsuario()">Buscar y Continuar</button>
+            <p id="mensaje-error" style="color: red; display: none;">Usuario no encontrado. <a href="#">Regístrate aquí primero</a>.</p>
+        </div>
+
+        <div id="seccion-pago" style="display: none;">
+            <h3>¡Usuario verificado!</h3>
+            <p>Por favor, realiza el pago escaneando el siguiente QR:</p>
+            <img id="qr-evento" class="qr-imagen" src="" alt="QR de Pago">
+            <br>
+            <input type="file" id="comprobante" accept="image/*">
+            <br><br>
+            <button onclick="enviarInscripcion()">Enviar Inscripción</button>
+        </div>
+    </div>
+
+    <script>
+        // 1. REEMPLAZA ESTO CON LA URL QUE TE DIO GOOGLE APPS SCRIPT
+        const URL_SCRIPT = 'https://script.google.com/macros/s/AKfycbyOi2HXtjuOCcDz5cUNHZlJqDm9zsKLWFntp44UkPe7PrSviGb_s4kUZ9HuehgFH90q/exec;
+
+        // 2. Función que se ejecuta al cargar la página
+        document.addEventListener("DOMContentLoaded", () => {
+            fetch(URL_SCRIPT)
+                .then(respuesta => respuesta.json())
+                .then(datos => {
+                    document.getElementById('cargando').style.display = 'none';
+                    
+                    if (datos && datos.nombre) {
+                        // Si hay evento activo, llenamos los datos en el HTML
+                        document.getElementById('evento-activo').style.display = 'block';
+                        document.getElementById('titulo-evento').textContent = datos.nombre;
+                        document.getElementById('monto-evento').textContent = datos.monto;
+                        document.getElementById('qr-evento').src = datos.qr;
+                    } else {
+                        // Si no hay evento activo
+                        document.getElementById('cargando').style.display = 'block';
+                        document.getElementById('cargando').textContent = 'No hay eventos activos en este momento.';
+                    }
+                })
+                .catch(error => {
+                    console.error("Error al cargar el evento:", error);
+                    document.getElementById('cargando').textContent = 'Error de conexión.';
+                });
+        });
+
+        // 3. Funciones vacías para el siguiente paso
+        function verificarUsuario() {
+            // Aquí añadiremos la lógica para buscar el C.I. en tu hoja de Google Sheets
+            alert("La conexión de búsqueda se implementará en el siguiente paso.");
+        }
+
+        function enviarInscripcion() {
+            // Aquí añadiremos la lógica para convertir la imagen y subirla a tu Drive
+            alert("El envío de comprobantes se implementará pronto.");
+        }
+    </script>
+</body>
+</html>
