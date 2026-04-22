@@ -46,7 +46,7 @@
 
     <script>
         // 1. PEGA AQUÍ TU NUEVA URL DE APPS SCRIPT
-        const URL_SCRIPT = 'https://script.google.com/macros/s/AKfycbzwt8Uli2ruhLHYrw4KgOj8f-WGStbMS2FAGiKM9GHOyB76X-T55WScWUKoaVYiImX-/exec';
+        const URL_SCRIPT = 'https://script.google.com/macros/s/AKfycbzw2C3-3glccpSkeXVbTIPtIS0gX7zc-5EecJ39wgEM24-DvoSxzNrwvxW4w20Fib0e/exec';
         
         let datosBase = []; // Guardaremos la lista aquí
 
@@ -99,7 +99,61 @@
         }
 
         function enviarInscripcion() {
-            alert("Siguiente paso: Subir la foto al Drive y guardar en el Excel.");
+            const inputArchivo = document.getElementById('comprobante');
+            const boton = document.querySelector('button[onclick="enviarInscripcion()"]');
+            
+            if (inputArchivo.files.length === 0) {
+                alert("Por favor, sube una foto de tu comprobante.");
+                return;
+            }
+
+            // Cambiar el botón para mostrar que está cargando
+            boton.textContent = "Subiendo y verificando...";
+            boton.disabled = true;
+
+            const archivo = inputArchivo.files[0];
+            const lector = new FileReader();
+
+            // Esto convierte la imagen a Base64
+            lector.onload = function(eventoLectura) {
+                // Limpiamos el inicio del string Base64 para que Google lo entienda
+                const base64Limpio = eventoLectura.target.result.split(',')[1];
+                
+                // Preparamos el paquete de datos
+                const paqueteDatos = {
+                    nombre: document.getElementById('nombre-confirmado').textContent,
+                    evento: document.getElementById('titulo-evento').textContent,
+                    imagenBase64: base64Limpio
+                };
+
+                // Enviamos los datos al script de Google
+                fetch(URL_SCRIPT, { // Asegúrate de que URL_SCRIPT sea tu URL más nueva
+                    method: 'POST',
+                    body: JSON.stringify(paqueteDatos)
+                })
+                .then(respuesta => respuesta.json())
+                .then(resultado => {
+                    if(resultado.exito) {
+                        document.getElementById('seccion-pago').innerHTML = `
+                            <h3 style="color: #28a745;">¡Inscripción Enviada!</h3>
+                            <p>Tu comprobante está en revisión. ¡Nos vemos en el evento!</p>
+                        `;
+                    } else {
+                        alert("Error al guardar: " + resultado.error);
+                        boton.textContent = "Reintentar";
+                        boton.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error("Error en el envío:", error);
+                    alert("Hubo un error de conexión.");
+                    boton.textContent = "Reintentar";
+                    boton.disabled = false;
+                });
+            };
+
+            // Ejecutar la lectura del archivo
+            lector.readAsDataURL(archivo);
         }
     </script>
 </body>
