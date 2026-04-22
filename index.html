@@ -8,77 +8,98 @@
         body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; text-align: center; }
         .tarjeta-evento { border: 1px solid #ccc; padding: 20px; border-radius: 10px; margin-top: 20px; display: none; }
         .qr-imagen { max-width: 250px; margin: 15px 0; border-radius: 8px; }
-        button { padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button { padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px; }
         button:hover { background-color: #218838; }
-        input[type="text"] { padding: 10px; width: 80%; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px;}
+        input[type="text"] { padding: 10px; width: 80%; border: 1px solid #ccc; border-radius: 5px; }
     </style>
 </head>
 <body>
 
     <h1>Portal de Inscripciones</h1>
     
-    <div id="cargando">Buscando eventos disponibles...</div>
+    <div id="cargando">Cargando base de datos y eventos...</div>
     
     <div id="evento-activo" class="tarjeta-evento">
         <h2 id="titulo-evento"></h2>
         <p><strong>Monto de inscripción:</strong> <span id="monto-evento"></span></p>
         
         <div id="seccion-busqueda">
-            <p>Ingresa tu C.I. o Nombre Completo para verificar tu registro previo:</p>
-            <input type="text" id="dato-busqueda" placeholder="Ej: 13981853 o Christopher...">
+            <p>Busca tu nombre o C.I. en la lista:</p>
+            <input list="lista-gladiadores" type="text" id="dato-busqueda" placeholder="Escribe para buscar...">
+            <datalist id="lista-gladiadores"></datalist>
             <br>
-            <button onclick="verificarUsuario()">Buscar y Continuar</button>
-            <p id="mensaje-error" style="color: red; display: none;">Usuario no encontrado. <a href="#">Regístrate aquí primero</a>.</p>
+            <button onclick="verificarUsuario()">Seleccionar y Continuar</button>
+            <p id="mensaje-error" style="color: red; display: none;">No estás en la lista. <a href="https://lienzosbolivia.github.io/Gladiadores-/">Regístrate aquí primero</a>.</p>
         </div>
 
         <div id="seccion-pago" style="display: none;">
-            <h3>¡Usuario verificado!</h3>
-            <p>Por favor, realiza el pago escaneando el siguiente QR:</p>
+            <h3 style="color: #28a745;">¡Hola, <span id="nombre-confirmado"></span>!</h3>
+            <p>Realiza tu pago escaneando este QR:</p>
             <img id="qr-evento" class="qr-imagen" src="" alt="QR de Pago">
             <br>
+            <p>Sube tu comprobante:</p>
             <input type="file" id="comprobante" accept="image/*">
-            <br><br>
-            <button onclick="enviarInscripcion()">Enviar Inscripción</button>
+            <br>
+            <button onclick="enviarInscripcion()">Confirmar Inscripción</button>
         </div>
     </div>
 
     <script>
-        // 1. REEMPLAZA ESTO CON LA URL QUE TE DIO GOOGLE APPS SCRIPT
-        const URL_SCRIPT = 'https://script.google.com/macros/s/AKfycby1I-LY0qn3Z566_l_2vd6_M48AYF7e0lAC84RNB-i_sAh5yMJP5s6eCY7UHP20MkTA/exec';
-        // 2. Función que se ejecuta al cargar la página
+        // 1. PEGA AQUÍ TU NUEVA URL DE APPS SCRIPT
+        const URL_SCRIPT = 'https://script.google.com/macros/s/AKfycbzwt8Uli2ruhLHYrw4KgOj8f-WGStbMS2FAGiKM9GHOyB76X-T55WScWUKoaVYiImX-/exec';
+        
+        let datosBase = []; // Guardaremos la lista aquí
+
         document.addEventListener("DOMContentLoaded", () => {
             fetch(URL_SCRIPT)
                 .then(respuesta => respuesta.json())
                 .then(datos => {
                     document.getElementById('cargando').style.display = 'none';
                     
-                    if (datos && datos.nombre) {
-                        // Si hay evento activo, llenamos los datos en el HTML
+                    if (datos.evento && datos.evento.nombre) {
                         document.getElementById('evento-activo').style.display = 'block';
-                        document.getElementById('titulo-evento').textContent = datos.nombre;
-                        document.getElementById('monto-evento').textContent = datos.monto;
-                        document.getElementById('qr-evento').src = datos.qr;
+                        document.getElementById('titulo-evento').textContent = datos.evento.nombre;
+                        document.getElementById('monto-evento').textContent = datos.evento.monto;
+                        document.getElementById('qr-evento').src = datos.evento.qr;
+                        
+                        // Cargar la lista en el datalist
+                        datosBase = datos.gladiadores;
+                        const datalist = document.getElementById('lista-gladiadores');
+                        datosBase.forEach(persona => {
+                            let option = document.createElement('option');
+                            // Mostramos "Nombre - C.I." en la lista
+                            option.value = `${persona.nombre} - ${persona.ci}`;
+                            datalist.appendChild(option);
+                        });
                     } else {
-                        // Si no hay evento activo
                         document.getElementById('cargando').style.display = 'block';
-                        document.getElementById('cargando').textContent = 'No hay eventos activos en este momento.';
+                        document.getElementById('cargando').textContent = 'No hay eventos activos.';
                     }
                 })
                 .catch(error => {
-                    console.error("Error al cargar el evento:", error);
+                    console.error("Error:", error);
                     document.getElementById('cargando').textContent = 'Error de conexión.';
                 });
         });
 
-        // 3. Funciones vacías para el siguiente paso
         function verificarUsuario() {
-            // Aquí añadiremos la lógica para buscar el C.I. en tu hoja de Google Sheets
-            alert("La conexión de búsqueda se implementará en el siguiente paso.");
+            const input = document.getElementById('dato-busqueda').value;
+            // Verificar si lo que escribió coincide con alguna opción de la lista
+            const existe = datosBase.some(persona => `${persona.nombre} - ${persona.ci}` === input);
+            
+            if (existe) {
+                document.getElementById('mensaje-error').style.display = 'none';
+                document.getElementById('seccion-busqueda').style.display = 'none';
+                document.getElementById('seccion-pago').style.display = 'block';
+                // Extraemos solo el nombre para saludarlo
+                document.getElementById('nombre-confirmado').textContent = input.split(' - ')[0];
+            } else {
+                document.getElementById('mensaje-error').style.display = 'block';
+            }
         }
 
         function enviarInscripcion() {
-            // Aquí añadiremos la lógica para convertir la imagen y subirla a tu Drive
-            alert("El envío de comprobantes se implementará pronto.");
+            alert("Siguiente paso: Subir la foto al Drive y guardar en el Excel.");
         }
     </script>
 </body>
