@@ -121,9 +121,24 @@
         }
 
         function verificarGladiador() {
-            const input = document.getElementById('dato-busqueda').value;
-            if (datosBase.some(p => `${p.nombre} - ${p.ci}` === input)) {
-                nombreParaInscribir = input.split(' - ')[0];
+            // 1. Obtenemos lo que el usuario escribió, quitamos espacios extra y lo pasamos a minúsculas
+            const input = document.getElementById('dato-busqueda').value.trim().toLowerCase();
+            
+            // 2. Buscamos en nuestra lista si coincide con el Nombre, con el C.I., o con la opción completa
+            const gladiadorEncontrado = datosBase.find(p => 
+                p.nombre.toLowerCase() === input || 
+                String(p.ci).toLowerCase() === input || 
+                `${p.nombre.toLowerCase()} - ${String(p.ci).toLowerCase()}` === input
+            );
+
+            if (gladiadorEncontrado) {
+                // Escondemos el error por si estaba visible
+                document.getElementById('error-gladiador').style.display = 'none';
+                
+                // EXTRA SEGURO: Usamos el nombre exacto de la base de datos (con sus mayúsculas originales)
+                // Esto asegura que al Excel le llegue el nombre perfecto, aunque el usuario haya escrito todo en minúsculas.
+                nombreParaInscribir = gladiadorEncontrado.nombre;
+                
                 prepararPago();
             } else {
                 document.getElementById('error-gladiador').style.display = 'block';
