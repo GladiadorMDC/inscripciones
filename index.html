@@ -6,9 +6,9 @@
     <title>Inscripciones Gladiadores</title>
     <style>
         body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; text-align: center; }
-        .tarjeta-evento { border: 1px solid #ccc; padding: 20px; border-radius: 10px; margin-top: 10px; display: none; }
+        .tarjeta-evento { border: 1px solid #ccc; padding: 20px; border-radius: 10px; margin-top: 10px; display: none; background-color: #ffffff; }
         .qr-imagen { max-width: 250px; margin: 15px 0; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        .logo-principal { max-width: 150px; margin-bottom: 10px; }
+        .logo-principal { max-width: 150px; margin-bottom: 5px; }
         .afiche-evento { max-width: 100%; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
         button { padding: 12px 20px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; width: 90%; font-size: 16px; font-weight: bold;}
         button:hover { background-color: #218838; }
@@ -20,18 +20,20 @@
         li { padding: 8px 0; border-bottom: 1px solid #eee; }
     </style>
 </head>
-<body>
+<body style="background-color: #f4f6f9;">
 
     <img src="gladiadores.png" alt="Logo Gladiadores" class="logo-principal">
     
-    <h1>Confirma Tu Participación</h1>
+    <h1 id="titulo-evento" style="color: #333; margin-top: 5px; margin-bottom: 15px;">Cargando evento...</h1>
+    
     <div id="cargando">Cargando base de datos...</div>
     
     <div id="evento-activo" class="tarjeta-evento">
         
         <img src="afiche.jpg" alt="Afiche del Evento" class="afiche-evento">
 
-        <h2 id="titulo-evento"></h2>
+        <h2 style="color: #0056b3; margin-top: 0;">Confirma Tu Participación</h2>
+        
         <p><strong>Monto:</strong> <span id="monto-evento"></span></p>
         
         <div id="menu-principal">
@@ -44,7 +46,7 @@
             <p>Busca tu nombre o C.I.:</p>
             <input list="lista-gladiadores" type="text" id="dato-busqueda" placeholder="Escribe para buscar...">
             <datalist id="lista-gladiadores"></datalist>
-            <button onclick="verificarGladiador()">Continuar a la Ofrenda</button>
+            <button onclick="verificarGladiador()">Continuar al Pago</button>
             <p id="error-gladiador" style="color: red; display: none;">No estás en la lista.</p>
         </div>
 
@@ -64,7 +66,7 @@
             <h3 style="color: #28a745;">¡Hola, <span id="nombre-confirmado"></span>!</h3>
             <p>Realiza tu pago escaneando este QR:</p>
             
-            <img id="qr-evento" class="qr-imagen" src="qr_pago.jpg" alt="qr_pago.jpg">
+            <img id="qr-evento" class="qr-imagen" src="qr_pago.jpg" alt="QR de Pago">
             
             <br>
             <p>Sube la foto de tu comprobante:</p>
@@ -75,21 +77,25 @@
     </div>
 
     <script>
-        // ¡RECUERDA PEGAR TU URL AQUÍ ABAJO!
+        // ¡RECUERDA PEGAR TU URL EXACTA AQUÍ ABAJO!
         const URL_SCRIPT = 'https://script.google.com/macros/s/AKfycbx5GG4UnT-DvMUBKk6a7BgJFFu9aGQZG3WCUspvNMjN3TN9nJMDc2xULP_7ZhjesByo/exec';
         
         let datosBase = []; 
         let nombreParaInscribir = "";
+        let nombreEventoOriginal = ""; // Guardamos el nombre del evento para enviarlo luego
 
         document.addEventListener("DOMContentLoaded", () => {
             fetch(URL_SCRIPT).then(r => r.json()).then(datos => {
                 document.getElementById('cargando').style.display = 'none';
-                if (datos.evento) {
+                
+                if (datos.evento && datos.evento.nombre) {
                     document.getElementById('evento-activo').style.display = 'block';
-                    document.getElementById('titulo-evento').textContent = datos.evento.nombre;
-                    document.getElementById('monto-evento').textContent = datos.evento.monto;
                     
-                    // ¡La línea del QR dinámico fue eliminada de aquí!
+                    // Llenar el título del evento que ahora está arriba
+                    document.getElementById('titulo-evento').textContent = datos.evento.nombre;
+                    nombreEventoOriginal = datos.evento.nombre; // Lo guardamos para la base de datos
+                    
+                    document.getElementById('monto-evento').textContent = datos.evento.monto;
                     
                     datosBase = datos.gladiadores;
                     const datalist = document.getElementById('lista-gladiadores');
@@ -98,9 +104,16 @@
                     const ulInscritos = document.getElementById('ul-inscritos');
                     if(datos.inscritos.length === 0) ulInscritos.innerHTML = "<li>Nadie se ha inscrito aún.</li>";
                     datos.inscritos.forEach(i => ulInscritos.insertAdjacentHTML('beforeend', `<li>${i.nombre} <span style="font-size:12px; color:gray;">(${i.estado})</span></li>`));
+                } else {
+                    document.getElementById('cargando').style.display = 'block';
+                    document.getElementById('cargando').textContent = 'No hay eventos activos en este momento.';
                 }
+            }).catch(error => {
+                console.error("Error al cargar la base de datos:", error);
+                document.getElementById('cargando').textContent = 'Error de conexión. Intenta recargar la página.';
             });
         });
+
         function mostrarSeccion(id) {
             document.querySelectorAll('.seccion-oculta').forEach(s => s.style.display = 'none');
             document.getElementById('menu-principal').style.display = id === 'menu-principal' ? 'block' : 'none';
@@ -122,7 +135,7 @@
             if(input !== "") {
                 nombreParaInscribir = input + " (Invitado)";
                 prepararPago();
-            } else { alert("Ingresa un nombre."); }
+            } else { alert("Por favor, ingresa el nombre de tu invitado."); }
         }
 
         function prepararPago() {
@@ -132,27 +145,38 @@
 
         function enviarInscripcion() {
             const archivo = document.getElementById('comprobante').files[0];
-            if (!archivo) return alert("Sube una foto del comprobante.");
+            if (!archivo) return alert("Por favor, sube una foto del comprobante de pago.");
             
             const btn = document.getElementById('btn-enviar');
-            btn.textContent = "Subiendo archivo, no cierres la ventana..."; btn.disabled = true;
+            btn.textContent = "Subiendo archivo, por favor espera..."; 
+            btn.disabled = true;
 
             const lector = new FileReader();
             lector.onload = function(e) {
                 const paquete = {
                     nombre: nombreParaInscribir,
-                    evento: document.getElementById('titulo-evento').textContent,
+                    evento: nombreEventoOriginal,
                     imagenBase64: e.target.result.split(',')[1]
                 };
 
                 fetch(URL_SCRIPT, { method: 'POST', body: JSON.stringify(paquete) })
                 .then(r => r.json()).then(res => {
                     if(res.exito) {
-                        document.getElementById('seccion-pago').innerHTML = `<h3 style="color:#28a745;">¡Inscripción Exitosa!</h3><p>Tu comprobante está en revisión.</p><button onclick="location.reload()">Volver al inicio</button>`;
+                        document.getElementById('seccion-pago').innerHTML = `
+                            <h3 style="color:#28a745;">¡Inscripción Enviada!</h3>
+                            <p>Tu comprobante está en revisión. ¡Nos vemos en el evento!</p>
+                            <button onclick="location.reload()">Volver al inicio</button>
+                        `;
                     } else {
-                        alert("Error: " + res.error);
-                        btn.textContent = "Reintentar"; btn.disabled = false;
+                        alert("Hubo un problema al guardar: " + res.error);
+                        btn.textContent = "Reintentar"; 
+                        btn.disabled = false;
                     }
+                }).catch(error => {
+                    console.error("Error al enviar:", error);
+                    alert("Error de conexión al enviar el comprobante.");
+                    btn.textContent = "Reintentar"; 
+                    btn.disabled = false;
                 });
             };
             lector.readAsDataURL(archivo);
