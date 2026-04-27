@@ -42,13 +42,21 @@
             <button class="btn-secundario" onclick="mostrarSeccion('seccion-lista')">📋 Ver lista de inscritos</button>
         </div>
 
-        <div id="seccion-gladiador" class="seccion-oculta">
+               <div id="seccion-gladiador" class="seccion-oculta">
             <p>Busca tu nombre o C.I.:</p>
-            <input list="lista-gladiadores" type="text" id="dato-busqueda" placeholder="Escribe para buscar...">
-            <datalist id="lista-gladiadores"></datalist>
+            
+            <div style="position: relative; width: 80%; margin: 0 auto; text-align: left;">
+                <input type="text" id="dato-busqueda" placeholder="Escribe tu nombre o C.I..." onkeyup="filtrarLista()" style="width: 100%; box-sizing: border-box; margin-bottom: 0;">
+                
+                <div id="lista-sugerencias" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ccc; max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0px 4px 6px rgba(0,0,0,0.1); border-radius: 0 0 5px 5px;">
+                </div>
+            </div>
+            
+            <br>
             <button onclick="verificarGladiador()">Continuar al Pago</button>
-            <p id="error-gladiador" style="color: red; display: none;">No estás en la lista.</p>
+            <p id="error-gladiador" style="color: red; display: none;">No estás en la lista. Verifica si lo escribiste bien.</p>
         </div>
+
 
         <div id="seccion-invitado" class="seccion-oculta">
             <p>Ingresa el nombre completo de tu invitado:</p>
@@ -99,7 +107,7 @@
                     
                     datosBase = datos.gladiadores;
                     const datalist = document.getElementById('lista-gladiadores');
-                    datosBase.forEach(p => datalist.insertAdjacentHTML('beforeend', `<option value="${p.nombre} - ${p.ci}">`));
+                    
                     
                     const ulInscritos = document.getElementById('ul-inscritos');
                     if(datos.inscritos.length === 0) ulInscritos.innerHTML = "<li>Nadie se ha inscrito aún.</li>";
@@ -120,30 +128,85 @@
             if(id !== 'menu-principal') document.getElementById(id).style.display = 'block';
         }
 
-        function verificarGladiador() {
-            // 1. Obtenemos lo que el usuario escribió, quitamos espacios extra y lo pasamos a minúsculas
-            const input = document.getElementById('dato-busqueda').value.trim().toLowerCase();
+                // NUEVA FUNCIÓN: Muestra la lista visualmente mientras escribes
+        function filtrarLista() {
+            const inputTexto = document.getElementById('dato-busqueda').value.toLowerCase().trim();
+            const contenedorLista = document.getElementById('lista-sugerencias');
             
-            // 2. Buscamos en nuestra lista si coincide con el Nombre, con el C.I., o con la opción completa
-            const gladiadorEncontrado = datosBase.find(p => 
-                p.nombre.toLowerCase() === input || 
-                String(p.ci).toLowerCase() === input || 
-                `${p.nombre.toLowerCase()} - ${String(p.ci).toLowerCase()}` === input
+            // Limpiar la lista actual
+            contenedorLista.innerHTML = '';
+
+            if (inputTexto === '') {
+                contenedorLista.style.display = 'none';
+                return;
+            }
+
+            // Filtrar coincidencias
+            const filtrados = datosBase.filter(p => 
+                p.nombre.toLowerCase().includes(inputTexto) || 
+                String(p.ci).toLowerCase().includes(inputTexto)
             );
 
+            if (filtrados.length > 0) {
+                contenedorLista.style.display = 'block';
+                filtrados.forEach(p => {
+                    const item = document.createElement('div');
+                    item.style.padding = '10px';
+                    item.style.borderBottom = '1px solid #eee';
+                    item.style.cursor = 'pointer';
+                    item.style.backgroundColor = 'white';
+                    item.textContent = `${p.nombre} - ${p.ci}`;
+                    
+                    // Efecto hover y clic
+                    item.onmouseover = () => item.style.backgroundColor = '#f0f8ff';
+                    item.onmouseout = () => item.style.backgroundColor = 'white';
+                    item.onclick = () => {
+                        // Al hacer clic, se llena el cuadro de texto y se oculta la lista
+                        document.getElementById('dato-busqueda').value = `${p.nombre} - ${p.ci}`;
+                        contenedorLista.style.display = 'none';
+                    };
+                    
+                    contenedorLista.appendChild(item);
+                });
+            } else {
+                contenedorLista.style.display = 'none';
+            }
+        }
+
+        // Ocultar la lista si el usuario hace clic en otro lado de la pantalla
+        document.addEventListener('click', function(e) {
+            if (e.target.id !== 'dato-busqueda') {
+                document.getElementById('lista-sugerencias').style.display = 'none';
+            }
+        });
+
+        // FUNCIÓN MEJORADA: A prueba de errores de escritura (como el "sc")
+        function verificarGladiador() {
+            const inputRaw = document.getElementById('dato-busqueda').value.toLowerCase().trim();
+            
+            // Si el usuario escribe solo el número (ej: 3876414), extraemos solo los números para comparar
+            const inputSoloNumeros = inputRaw.replace(/\D/g, '');
+
+            const gladiadorEncontrado = datosBase.find(p => {
+                const opcionCompleta = `${p.nombre} - ${p.ci}`.toLowerCase();
+                const ciSoloNumeros = String(p.ci).replace(/\D/g, ''); // Le quita el "sc" o letras al CI de la base de datos
+
+                return opcionCompleta === inputRaw || // Coincide si seleccionó de la lista
+                       p.nombre.toLowerCase() === inputRaw || // Coincide si escribió solo el nombre perfecto
+                       (inputSoloNumeros.length > 4 && ciSoloNumeros === inputSoloNumeros) || // Coincide si puso solo el número correcto (ignorando el 'sc')
+                       String(p.ci).toLowerCase() === inputRaw;
+            });
+
             if (gladiadorEncontrado) {
-                // Escondemos el error por si estaba visible
                 document.getElementById('error-gladiador').style.display = 'none';
-                
-                // EXTRA SEGURO: Usamos el nombre exacto de la base de datos (con sus mayúsculas originales)
-                // Esto asegura que al Excel le llegue el nombre perfecto, aunque el usuario haya escrito todo en minúsculas.
-                nombreParaInscribir = gladiadorEncontrado.nombre;
-                
+                // Siempre extraemos el nombre oficial de la base de datos para no fallar en la asistencia
+                nombreParaInscribir = gladiadorEncontrado.nombre; 
                 prepararPago();
             } else {
                 document.getElementById('error-gladiador').style.display = 'block';
             }
         }
+
 
         function verificarInvitado() {
             const input = document.getElementById('nombre-invitado').value.trim();
